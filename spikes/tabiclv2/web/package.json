@@ -1,0 +1,21 @@
+{
+  "name": "tabloom-tabiclv2-browser-spike",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "probe:wasm": "node run-browser.mjs wasm",
+    "probe:webgpu": "node run-browser.mjs webgpu",
+    "probe:fp16-storage-wasm": "node run-browser.mjs wasm fp16-storage",
+    "probe:fp16-storage-webgpu": "node run-browser.mjs webgpu fp16-storage",
+    "probe:fp8-storage-wasm": "node run-browser.mjs wasm fp8-storage",
+    "probe:fp8-storage-webgpu": "node run-browser.mjs webgpu fp8-storage"
+  },
+  "dependencies": {
+    "onnxruntime-web": "1.30.0",
+    "playwright-core": "1.63.0",
+    "sirv": "3.0.2",
+    "vite": "7.3.6"
+  }
+}

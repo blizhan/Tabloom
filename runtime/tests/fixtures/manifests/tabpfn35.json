@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "modelId": "tabpfn-3.5",
+  "modelVersion": "3.5-runtime",
+  "manifestDigest": "0000000000000000000000000000000000000000000000000000000000000000",
+  "precision": "fp16-storage-fp32-compute",
+  "preprocessingVersion": "tabpfn35-preprocessing-v1",
+  "files": [{"path":"tabpfn35-placeholder.onnx","role":"graph","bytes":0,"sha256":"0000000000000000000000000000000000000000000000000000000000000000"}],
+  "inputs": [],
+  "providerCompatibility": ["wasm", "webgpu"],
+  "capabilities": {"canBuildContext":true,"canImportContext":true,"maxModelFeatures":32,"trainRows":{"min":3,"max":1024},"predictionRows":{"min":1,"max":1024}}
+}

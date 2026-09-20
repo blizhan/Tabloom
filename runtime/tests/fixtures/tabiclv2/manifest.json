@@ -1,0 +1,7 @@
+{
+  "status": "pending-export",
+  "modelId": "tabicl-v2",
+  "source": "spikes/tabiclv2/export_case_golden.py",
+  "canBuildContext": false,
+  "note": "Generated Case arrays are ignored artifacts and are never fabricated by the runtime."
+}

@@ -1,0 +1,13 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import { createHash } from "node:crypto";
+
+const args = process.argv.slice(2); const repoRoot = path.resolve(process.cwd(), ".."); const rootIndex = args.indexOf("--artifact-root"); const artifactRoot = rootIndex >= 0 ? args[rootIndex + 1] : path.join(repoRoot, "artifacts");
+const required = ["tabpfn35/shared-weights-dynamic-fp16-storage", "tabpfn35/context-chain/web-fixture", "tabpfn35/estimator-golden/manifest.json", "tabiclv2", "tabiclv2/case-golden/manifest.json"];
+const missing = []; for (const relative of required) { try { await fs.access(path.join(artifactRoot, relative)); } catch { missing.push(relative); } }
+const manifestPaths = [path.resolve("tests/fixtures/manifests/tabpfn35.json"), path.resolve("tests/fixtures/manifests/tabiclv2.json")];
+for (const manifestPath of manifestPaths) { try { const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")); if (!manifest.modelId || !manifest.manifestDigest) missing.push(path.relative(process.cwd(), manifestPath)); } catch { missing.push(path.relative(process.cwd(), manifestPath)); } }
+for (const relativeManifest of ["tabpfn35/estimator-golden/manifest.json", "tabiclv2/case-golden/manifest.json"]) { const manifestPath = path.join(artifactRoot, relativeManifest); try { const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")); for (const scenario of manifest.scenarios ?? []) { const file = path.join(path.dirname(manifestPath), scenario.file); const bytes = await fs.readFile(file); const digest = createHash("sha256").update(bytes).digest("hex"); if (scenario.sha256 && digest !== scenario.sha256.toLowerCase()) missing.push(`${relativeManifest}:${scenario.file}:sha256`); } if (manifest.sha256) { const file = path.join(path.dirname(manifestPath), manifest.caseArtifact); const bytes = await fs.readFile(file); if (createHash("sha256").update(bytes).digest("hex") !== manifest.sha256.toLowerCase()) missing.push(`${relativeManifest}:${manifest.caseArtifact}:sha256`); } } catch { /* the required path is already reported above */ } }
+const report = { artifactRoot: path.resolve(artifactRoot), checkedAt: new Date().toISOString(), required, missing, routes: missing.length ? [] : ["tabpfn35", "tabiclv2"] };
+await fs.mkdir(path.join(repoRoot, "artifacts/runtime/reports"), { recursive: true }); await fs.writeFile(path.join(repoRoot, "artifacts/runtime/reports/fixture-prepare.json"), JSON.stringify(report, null, 2));
+if (missing.length) { console.error(`Missing required fixtures/assets:\n${missing.map((item) => `- ${item}`).join("\n")}`); process.exitCode = 1; } else console.log(JSON.stringify(report, null, 2));

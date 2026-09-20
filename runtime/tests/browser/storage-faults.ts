@@ -1,0 +1,3 @@
+import { IndexedDbStore } from "../../src/storage/indexeddb-store";
+export async function storageSmoke(): Promise<{ roundTrip: boolean }> { const store = new IndexedDbStore(); const input = new Uint8Array([1, 2, 3]); await store.put("smoke", input); const output = await store.get("smoke"); return { roundTrip: Boolean(output && output.every((value, index) => value === input[index])) }; }
+export async function storageFaultSmoke(): Promise<{ corruptMiss: boolean }> { const store = new IndexedDbStore({ fault: (operation) => { if (operation === "get") throw new Error("disabled"); } }); const output = await store.get("missing").catch(() => undefined); return { corruptMiss: output === undefined }; }

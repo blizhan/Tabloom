@@ -1,0 +1,7 @@
+{
+  "status": "pending-export",
+  "modelId": "tabpfn-3.5",
+  "source": "spikes/tabpfn35/export_estimator_golden.py",
+  "note": "Generated golden arrays are ignored artifacts and are never fabricated by the runtime.",
+  "scenarios": ["normal", "missing", "opt-in-inf"]
+}

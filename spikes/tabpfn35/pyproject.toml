@@ -1,0 +1,26 @@
+[project]
+name = "tabloom-tabpfn35-spike"
+version = "0.1.0"
+description = "TabPFN 3.5 GPU and browser-export feasibility spike for Tabloom"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "numpy>=2.3,<3",
+  "onnx==1.22.0",
+  "onnxruntime==1.30.0",
+  "onnxscript>=0.7,<0.8",
+  "scikit-learn>=1.8,<2",
+  "tabpfn==9.0.0",
+  "torch==2.14.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu130" }
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+

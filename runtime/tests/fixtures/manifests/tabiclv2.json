@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "modelId": "tabicl-v2",
+  "modelVersion": "2-runtime",
+  "manifestDigest": "0000000000000000000000000000000000000000000000000000000000000000",
+  "precision": "fp16-storage-fp32-compute",
+  "preprocessingVersion": "tabicl-case-v1",
+  "files": [{"path":"tabiclv2-placeholder.onnx","role":"graph","bytes":0,"sha256":"0000000000000000000000000000000000000000000000000000000000000000"}],
+  "inputs": [],
+  "providerCompatibility": ["wasm", "webgpu"],
+  "capabilities": {"canBuildContext":false,"canImportContext":true,"maxModelFeatures":32,"trainRows":{"min":1,"max":1},"predictionRows":{"min":1,"max":1024}}
+}
