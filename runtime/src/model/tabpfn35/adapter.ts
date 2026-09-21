@@ -4,7 +4,7 @@ import { ContextRegistry, type ContextBacking } from "../context-registry";
 import type { ArtifactManifest, ArtifactStore } from "../../storage/manifest";
 import type { ContextSnapshot, ExecutionProvider, FitContextOptions, ModelCapabilities, ModelContext, ModelLoadOptions, PredictionMetadata, PredictionOptions, PredictionResult, RuntimeTensorSnapshot, TabularDataset, TabularModelAdapter, TrainingDataset } from "../types";
 import { fitPreprocessing, transformFeatures, transformTrainingFeatures, checkPreparedShape, TABPFN35_MODEL_VERSION, TABPFN35_PREPROCESSING_VERSION } from "./preprocessing";
-import { decodeMean, decodeRegressionMean } from "./decode";
+import { decodeMean, decodeRegressionMean, decodeRegressionQuantiles } from "./decode";
 import { validateContextSnapshot, verifyContextSnapshot } from "../context-snapshot";
 import { sha256Hex } from "../identity";
 import { TabPFN35OrtRuntime, type TabPFN35CacheTensor, type TabPFN35InferenceRuntime, type TabPFN35OrtRuntimeOptions, type TabPFN35RuntimeDiagnostics } from "./ort-runtime";
@@ -138,10 +138,11 @@ export class TabPFN35Adapter implements TabularModelAdapter {
     try {
       const backing = this.registry.get(context); const state = backing.state; if (!state) throw new RuntimeError("CONTEXT_INCOMPATIBLE", "Context has no fitted state");
       const capabilities = this.capabilities(); const prepared = transformFeatures(dataset, state); checkPreparedShape(prepared, { minRows: capabilities.predictionRows.min, maxRows: capabilities.predictionRows.max, maxFeatures: capabilities.maxModelFeatures });
-      let mean: Float32Array; let inference: "ort" | "fallback" = "fallback";
+      let mean: Float32Array; let quantiles: { q25: Float32Array; q75: Float32Array } | undefined; let inference: "ort" | "fallback" = "fallback";
       if (this.ortRuntime) {
         const logits = await this.ortRuntime.predict(flattenPrepared(prepared.values, prepared.rowCount), prepared.rowCount, prepared.values.length, backing.tensors);
-        mean = decodeRegressionMean(logits.data, logits.dims, { targetMean: state.targetMean, targetScale: state.targetScale, temperature: Number(state.extra?.decoderTemperature ?? 1), borders: Array.isArray(state.extra?.standardBorders) ? state.extra.standardBorders.map(Number) : undefined });
+        mean = decodeRegressionMean(logits.data, logits.dims, { targetMean: state.targetMean, targetScale: state.targetScale, temperature: Number(state.extra?.decoderTemperature ?? 1), borders: Array.isArray(state.extra?.standardBorders) ? state.extra.standardBorders.map(Number) : undefined, translateProbabilities: true });
+        quantiles = decodeRegressionQuantiles(logits.data, logits.dims, { targetMean: state.targetMean, targetScale: state.targetScale, temperature: Number(state.extra?.decoderTemperature ?? 1), borders: Array.isArray(state.extra?.standardBorders) ? state.extra.standardBorders.map(Number) : undefined, translateProbabilities: true });
         inference = "ort";
       } else {
         const raw = this.options.inference ? new Float32Array(await this.options.inference.predict(state, dataset)) : new Float32Array(dataset.rowCount);
@@ -150,7 +151,7 @@ export class TabPFN35Adapter implements TabularModelAdapter {
         mean = decodeMean(raw, { targetMean: state.targetMean, targetScale: state.targetScale });
       }
       const metadata: PredictionMetadata = { modelId: this.id, modelVersion: this.modelVersion, artifactManifestDigest: this.artifactDigest, provider: this.provider, runtimeVersion: this.options.runtimeVersion ?? "runtime-dev", timings: { predictMs: now() - started }, warnings: [...this.warnings], inference };
-      return { mean, requestId: options.requestId, inputSnapshotId: options.inputSnapshotId, scenarioId: options.scenarioId, contextKey: backing.identity.key, metadata, rowOrdinal: Array.from({ length: dataset.rowCount }, (_, index) => index) };
+      return { mean, ...quantiles, requestId: options.requestId, inputSnapshotId: options.inputSnapshotId, scenarioId: options.scenarioId, contextKey: backing.identity.key, metadata, rowOrdinal: Array.from({ length: dataset.rowCount }, (_, index) => index) };
     } finally { release(); }
   }
   async dispose(): Promise<void> { if (this.disposed) return; this.disposed = true; this.loaded = false; const runtime = this.ortRuntime; this.ortRuntime = undefined; try { await runtime?.release(); } finally { this.registry.dispose(); } }

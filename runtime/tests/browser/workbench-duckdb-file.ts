@@ -1,0 +1,2 @@
+export interface DuckDbProbeEvidence { readonly operation: "open" | "attach" | "read" | "write"; readonly status: "supported" | "constrained" | "unsupported"; readonly originalHashBefore: string; readonly originalHashAfter: string; }
+export function assertOriginalUnchanged(evidence: readonly DuckDbProbeEvidence[]): void { for (const item of evidence) if (item.originalHashBefore !== item.originalHashAfter) throw new Error(`DuckDB probe changed original file during ${item.operation}`); }

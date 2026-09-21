@@ -12,6 +12,7 @@ function copyRuntimeAssets() {
   const tabpfnRoot = path.resolve("..", "artifacts", "tabpfn35");
   const tabpfnGoldenRoot = path.join(tabpfnRoot, "estimator-golden");
   const tabpfnContextChainRoot = path.join(tabpfnRoot, "context-chain", "web-fixture");
+  const workbenchFixtureRoot = path.resolve("tests", "fixtures", "workbench", "v1");
   const tabpfnFp16Root = path.join(tabpfnRoot, "shared-weights-dynamic-fp16-storage");
   const tabpfnFp32Root = path.join(tabpfnRoot, "shared-weights");
   const addBinaryMimeMiddleware = (server: { middlewares: { use: (handler: (request: { url?: string }, response: { setHeader: (name: string, value: string) => void }, next: () => void) => void) => void } }) => {
@@ -42,6 +43,7 @@ function copyRuntimeAssets() {
     server.middlewares.use("/runtime-assets/tabpfn35/fp32", sirv(tabpfnFp32Root, { dev: true, setHeaders: assetHeaders }));
     server.middlewares.use("/runtime-fixtures/tabpfn35/estimator-golden", sirv(tabpfnGoldenRoot, { dev: true, setHeaders: assetHeaders }));
     server.middlewares.use("/runtime-fixtures/tabpfn35/context-chain", sirv(tabpfnContextChainRoot, { dev: true, setHeaders: assetHeaders }));
+    server.middlewares.use("/runtime-fixtures/workbench/v1", sirv(workbenchFixtureRoot, { dev: true, setHeaders: assetHeaders }));
   };
   return {
     name: "tabloom-copy-runtime-assets",
@@ -87,6 +89,8 @@ function copyRuntimeAssets() {
       const contextChainOutput = path.join(distRoot, "runtime-fixtures", "tabpfn35", "context-chain");
       fs.mkdirSync(contextChainOutput, { recursive: true });
       for (const file of fs.readdirSync(tabpfnContextChainRoot)) fs.copyFileSync(path.join(tabpfnContextChainRoot, file), path.join(contextChainOutput, file));
+      const workbenchOutput = path.join(distRoot, "runtime-fixtures", "workbench", "v1");
+      fs.cpSync(workbenchFixtureRoot, workbenchOutput, { recursive: true });
     },
   };
 }

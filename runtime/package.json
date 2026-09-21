@@ -5,25 +5,39 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:app": "tsc -p tsconfig.app.json --noEmit",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
     "build": "tsc -p tsconfig.json && vite build",
+    "build:app": "npm run typecheck:app && vite build -c vite.app.config.ts",
     "test": "npm run typecheck:test && tsx --test tests/**/*.test.ts",
     "test:unit": "npm run typecheck:test && tsx --test tests/**/*.test.ts",
     "test:browser": "node scripts/run-browser.mjs",
     "fixtures:prepare": "node scripts/prepare-fixtures.mjs",
+    "fixtures:workbench": "node scripts/prepare-workbench-fixtures.mjs",
+    "fixtures:workbench:check": "node scripts/check-workbench-fixtures.mjs",
     "acceptance:summary": "node scripts/summarize-acceptance.mjs",
-    "dev": "vite --host 127.0.0.1 --port 4175 --strictPort"
+    "dev": "vite --host 127.0.0.1 --port 4175 --strictPort",
+    "dev:app": "vite -c vite.app.config.ts --host 127.0.0.1 --port 4176 --strictPort",
+    "test:workbench": "node scripts/run-workbench.mjs",
+    "test:prediction-ui": "node scripts/test-prediction-ui.mjs",
+    "workbench:source-server": "node scripts/workbench-source-server.mjs"
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "1.33.1-dev57.0",
     "apache-arrow": "17.0.0",
-    "onnxruntime-web": "1.30.0"
+    "onnxruntime-web": "1.30.0",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
   },
   "devDependencies": {
     "@types/node": "22.20.3",
+    "@types/react": "19.1.12",
+    "@types/react-dom": "19.1.9",
     "playwright-core": "1.63.0",
     "sirv": "3.0.2",
     "tsx": "4.23.13",

@@ -3,7 +3,7 @@ import { sha256Hex } from "../identity";
 import { TabPFN35Adapter } from "./adapter";
 import { TabPFN35OrtRuntime } from "./ort-runtime";
 import type { ExecutionProvider } from "../types";
-import { IndexedDbStore } from "../../storage/indexeddb-store";
+import { artifactCacheKey, createArtifactCacheStore, type ModelAssetEvent, MODEL_ARTIFACT_FILES } from "../../workbench/model-asset-status";
 
 export type TabPFN35Precision = "fp32" | "fp16-storage-fp32-compute";
 export interface TabPFN35ArtifactFetchStats {
@@ -11,9 +11,7 @@ export interface TabPFN35ArtifactFetchStats {
   readonly files: Record<string, number>;
   readonly bytes: Record<string, number>;
 }
-const ARTIFACT_CACHE_DB = "tabloom-runtime-artifacts-v1";
-const ARTIFACT_CACHE_VERSION = "tabpfn35-runtime-cache-v1";
-const artifactCache = new IndexedDbStore({ dbName: ARTIFACT_CACHE_DB });
+const artifactCache = createArtifactCacheStore();
 const artifactInflight = new Map<string, Promise<Uint8Array>>();
 
 export function resolveTabPFN35Precision(value: unknown): TabPFN35Precision {
@@ -25,15 +23,24 @@ function assetUrl(file: string, precision: TabPFN35Precision, baseUrl?: string):
   return new URL(`/runtime-assets/tabpfn35/${precision}/${file}`, origin).toString();
 }
 
-async function fetchAsset(file: string, precision: TabPFN35Precision, baseUrl: string | undefined, stats: TabPFN35ArtifactFetchStats): Promise<Uint8Array> {
+async function fetchAsset(file: string, precision: TabPFN35Precision, baseUrl: string | undefined, stats: TabPFN35ArtifactFetchStats, onAssetEvent?: (event: ModelAssetEvent) => void): Promise<Uint8Array> {
   // Bind the persistent generation to an explicit cache/artifact version,
   // precision and exact file path. IndexedDbStore verifies length and SHA-256 for every
   // cached generation; a corrupt or interrupted cache entry is a miss.
-  const cacheKey = `${ARTIFACT_CACHE_VERSION}:${precision}:${file}`;
+  const cacheKey = artifactCacheKey(precision, file);
   const pending = artifactInflight.get(cacheKey);
   if (pending) return pending;
   const task = (async () => {
-    try { const cached = await artifactCache.get(cacheKey); if (cached) return cached; } catch { /* disabled/quota storage falls back to network */ }
+    try {
+      const manifest = await artifactCache.getManifest(cacheKey);
+      onAssetEvent?.({ kind: "model-assets", precision, state: "checking", file, message: manifest ? "发现缓存，加载时校验" : "检查本地缓存" });
+      const cached = await artifactCache.get(cacheKey);
+      if (cached) return cached;
+    } catch {
+      onAssetEvent?.({ kind: "model-assets", precision, state: "checking", file, message: "本地缓存不可用，准备下载" });
+      /* disabled/quota storage falls back to network */
+    }
+    onAssetEvent?.({ kind: "model-assets", precision, state: "downloading", file, message: "正在下载权重" });
     let response: Response;
     try {
       response = await fetch(assetUrl(file, precision, baseUrl));
@@ -55,14 +62,13 @@ async function fetchAsset(file: string, precision: TabPFN35Precision, baseUrl: s
 /** Create the artifact-bound adapter used by the primary model worker and the
  * browser parity worker.  ORT sessions remain owned by the adapter; only
  * host-readable results cross the worker protocol. */
-export async function createTabPFN35Adapter(options: { readonly precision?: TabPFN35Precision; readonly baseUrl?: string } = {}): Promise<TabPFN35Adapter> {
+export async function createTabPFN35Adapter(options: { readonly precision?: TabPFN35Precision; readonly baseUrl?: string; readonly onAssetEvent?: (event: ModelAssetEvent) => void } = {}): Promise<TabPFN35Adapter> {
   const precision = resolveTabPFN35Precision(options.precision);
+  options.onAssetEvent?.({ kind: "model-assets", precision, state: "checking", message: "检查 TabPFN 3.5 权重" });
   const fetchStats: TabPFN35ArtifactFetchStats = { networkFetches: 0, files: Object.create(null) as Record<string, number>, bytes: Object.create(null) as Record<string, number> };
-  const [contextGraph, predictorGraph, sharedData] = await Promise.all([
-    fetchAsset("tabpfn35-context-dynamic.onnx", precision, options.baseUrl, fetchStats),
-    fetchAsset("tabpfn35-predict-dynamic.onnx", precision, options.baseUrl, fetchStats),
-    fetchAsset("tabpfn35-shared.data", precision, options.baseUrl, fetchStats),
-  ]);
+  try {
+    const [contextGraph, predictorGraph, sharedData] = await Promise.all(MODEL_ARTIFACT_FILES.map((file) => fetchAsset(file, precision, options.baseUrl, fetchStats, options.onAssetEvent))) as [Uint8Array, Uint8Array, Uint8Array];
+    options.onAssetEvent?.({ kind: "model-assets", precision, state: "available", message: fetchStats.networkFetches ? "权重已获取，正在校验并加载" : "发现并校验本地缓存" });
   const digestInput = new Uint8Array(contextGraph.byteLength + predictorGraph.byteLength + sharedData.byteLength);
   digestInput.set(contextGraph, 0);
   digestInput.set(predictorGraph, contextGraph.byteLength);
@@ -85,11 +91,15 @@ export async function createTabPFN35Adapter(options: { readonly precision?: TabP
     maxPredictionRows: 1024,
     maxFeatures: 32,
   });
-  return new TabPFN35Adapter({
+    return new TabPFN35Adapter({
     modelVersion: `3.5-runtime-shared-${precision}`,
     artifactManifestDigest,
     requireOrtRuntime: true,
     ortRuntimeFactory: runtimeFactory,
     artifactDiagnostics: () => ({ networkFetches: fetchStats.networkFetches, files: { ...fetchStats.files }, bytes: { ...fetchStats.bytes }, ownedBytes: Object.values(fetchStats.bytes).reduce((total, value) => total + value, 0) }),
-  });
+    });
+  } catch (error) {
+    options.onAssetEvent?.({ kind: "model-assets", precision, state: "failed", message: error instanceof Error ? error.message : String(error) });
+    throw error;
+  }
 }

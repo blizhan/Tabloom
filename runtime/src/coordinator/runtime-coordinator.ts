@@ -32,7 +32,10 @@ export class RuntimeCoordinator {
       if (token.cancelled) { await this.publication.cancel(input.requestId); throw new RuntimeError("CANCELLED", "Prediction cancelled"); }
       const result = await this.client.predict(input.context, input.inputSnapshot.dataset as TabularDataset, { requestId: input.requestId, inputSnapshotId: input.inputSnapshot.inputSnapshotId, scenarioId: input.scenarioId });
       if (token.cancelled) { await this.publication.cancel(input.requestId); throw new RuntimeError("CANCELLED", "Prediction cancelled"); }
-      const rows = await this.publication.publish(reservation, result, input.inputSnapshot); await this.duckdb.registerResults(input.requestId, rows); this.progress.finish(input.requestId, "complete"); return rows;
+      const rows = await this.publication.publish(reservation, result, input.inputSnapshot);
+      try { await this.duckdb.registerResults(input.requestId, rows); }
+      catch (error) { await this.publication.rollback(input.requestId, error instanceof Error ? error.message : String(error)); throw error; }
+      this.progress.finish(input.requestId, "complete"); return rows;
     } });
     if (outcome.status !== "published") { await this.publication.cancel(input.requestId, outcome.status); this.progress.finish(input.requestId, outcome.status === "cancelled" ? "cancelled" : "failed"); }
     return outcome;

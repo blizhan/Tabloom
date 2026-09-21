@@ -92,6 +92,7 @@ out
 dist
 **/dist-test/
 **/dist-harness/
+**/dist-app/
 .output
 
 # Gatsby files

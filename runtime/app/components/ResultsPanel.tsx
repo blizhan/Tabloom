@@ -1,0 +1,3 @@
+export interface ResultPanelRow { readonly rowOrdinal: number; readonly mean: number; readonly businessKey?: unknown; }
+export function renderResultsPanel(rows: readonly ResultPanelRow[], onExportLabel = "导出"): string { return `<section aria-label="预测结果"><header><h2>预测结果</h2><button>${escapeHtml(onExportLabel)}</button></header><table><thead><tr><th>rowOrdinal</th><th>businessKey</th><th>mean</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${row.rowOrdinal}</td><td>${escapeHtml(String(row.businessKey ?? ""))}</td><td>${Number.isFinite(row.mean) ? row.mean : "ERROR"}</td></tr>`).join("")}</tbody></table></section>`; }
+function escapeHtml(value: string): string { return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;"); }

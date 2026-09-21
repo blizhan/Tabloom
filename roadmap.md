@@ -226,6 +226,38 @@ interface TabularModelAdapter {
 
 ## 7. 一到两周实施路线
 
+### 7.0 001 → 002 对齐与交付断层
+
+`001-common-view-runtime` 和 `002-phase1-workbench` 交付的是两层不同的东西：001 先交付可复用的浏览器运行时、情景调度和结果发布底座，002 再交付 Common View 的数据导入、批量实验和查询闭环。两者之间不能用“底层接口存在”代替“工作台用户可操作”。以下台账记录当前断层，避免后续把 001 的 harness 证据误当成 002 的产品能力。
+
+状态含义：**仅底座**表示运行时或测试入口已有能力；**工作台缺口**表示需要在 Common View 接入；**验收缺口**表示实现路径可能存在但没有对应的产品证据；**延后**表示已明确留给后续 Phase，不计作当前 Phase 1 的失败。
+
+| ID | 断层 | 已有基础 / 来源 | 当前缺口 | 补齐条件与归属 |
+| --- | --- | --- | --- | --- |
+| D-001 | 产品范围没有传递 | Roadmap 的核心流程已经写有“基准预测 + 交互情景预测”；001 US2、FR-007/012/017、SC-004 明确要求修改预测输入、复用 context、只接受最新请求。 | 002 只定义了四个故事：数据、批量预测、来源能力、恢复；没有把情景交互列为工作台故事、FR 或 SC。 | 在后续工作台规格中单独声明情景故事，或者明确记录为 Phase 1 后置能力；不要把当前 002 baseline MVP 标成完整核心体验。归属：产品规格对齐。 |
+| D-002 | Test 特征编辑入口 | 001 的 `deriveScenario` 能从基准输入创建不可变情景；Roadmap 6 节已定义偏移、倍率和固定值。 | 002 UI 只有 Test SQL 文本框、特征勾选和结果图，没有选择 Test 行、编辑数值、滑块、重置或有效范围提示。 | 增加 Test 行/时间范围选择、数值编辑器、偏移/倍率/固定值和 reset；目标真值不可编辑。归属：Workbench UI。 |
+| D-003 | prediction-only 修改没有复用训练 context | 001 FR-007 要求只改预测输入时复用训练上下文。 | 当前 `runtime/app/App.ts` 的运行路径每次都执行 `fitContext`；工作台提交的是 `scenarioId: baseline`、`mode: experiment`，没有 scenario prediction 分支。 | 将“训练配置变化”和“预测输入变化”拆成两条路径；只改 Test 特征时保持同一 context identity，并以 fit 次数为验收证据。归属：Workbench runtime adapter。 |
+| D-004 | interactive 调度没有接到 UI | 001 已有 interactive queue、generation、取消和“只接受最新请求”语义。 | 002 工作台使用显式 experiment 模式，未把快速拖动/连续提交映射为 interactive stream；因此已有调度机制对用户不可见。 | 情景请求使用独立 stream 和 scenario generation；连续 A/B/C 修改最终只发布 C，旧请求有 cancelled/superseded 状态。归属：Workbench orchestration。 |
+| D-005 | 情景快照与 provenance 不完整 | 001 数据模型保存 baseline、parent、修改参数、row mapping 和不可变输入快照。 | 002 `WorkbenchExperimentDefinition` 主要保存查询、目标、特征和一个输入快照 ID，没有情景父子关系、修改记录和 scenario 行映射。 | 扩展实验/快照定义，保存原始输入、修改后输入、parent snapshot、修改参数、scenario ID 和逐行映射；刷新或恢复不能覆盖基准。归属：数据模型与持久化。 |
+| D-006 | 结果只有当前批量结果，没有基准/情景比较 | 001 运行时保留 baseline、scenario head、历史和当前结果。Roadmap 要求显示相对基准的差异。 | 002 工作台主要维护单个 `result` 和单条预测曲线，没有基准曲线、情景历史、差值、命名情景或删除情景入口。 | UI 至少同时显示 baseline/current/delta，并保留可查询的 scenario result；当前结果切换不能删除基准或已保存实验。归属：结果模型与 Results UI。 |
+| D-007 | 情景没有贯穿导出与恢复 | Roadmap 要求导出模型、数据、情景参数和时间戳；001 将情景作为结果身份的一部分。 | 002 的 CSV/实验导出和恢复契约主要围绕单次 baseline experiment，未定义情景输入、修改前后值、差值和 scenario history 的导出/恢复语义。 | 为 CSV/Parquet/Arrow sidecar 与实验 JSON 增加 scenario metadata；恢复后能区分 baseline、当前情景和历史情景，缺数据时不得静默绑定新输入。归属：导出与 persistence。 |
+| D-008 | 运行时情景验收没有覆盖产品路径 | 001 harness 已验证 context 热复用、连续 20 次情景、基准保留、迟到结果拒绝和清理。 | 002 的 flow/model-cache/responsiveness 验收验证的是批量实验、缓存和长操作，不验证工作台修改 Test 特征后的完整链路。 | 增加 Workbench scenario suite：真实页面编辑 → derived snapshot → interactive prediction → baseline/current/delta → 快速修改竞态；记录 fit 次数、请求状态和结果身份。归属：端到端验收。 |
+| D-009 | Case View 与 Common View 尚未形成产品桥 | 001 US4 已定义 Case → Common 的数据、模型、context、结果身份保持和 Open in Common View；Roadmap Phase 2 依赖情景编辑。 | 002 明确把真实案例排除在本期，当前只有 Common View，尚无 Case 页面、案例配置或 Open in Common View 产品入口。 | 作为 Phase 2 的明确前置：Case 与 Common 必须调用同一 scenario/result contract，不能为案例另造一套滑块和结果语义。状态：延后，不计作 002 baseline 失败。 |
+| D-010 | 多模型路线与当前工作台能力不一致 | Roadmap 目标包含 TabPFN 3.5、TabPFN 3、TabICL v2，并要求同一情景可比较模型。001 已有 TabICL 预构建 Case 能力和明确的动态训练限制。 | 002 当前工作台只验证 TabPFN 3.5 数值回归；TabICL 动态 fit 被禁用，TabPFN 3 尚未验证，模型比较 UI/契约不存在。 | 先公开 supported/constrained/blocked 矩阵；再为同一输入、特征顺序、情景 ID 和误差预算增加模型比较。动态训练不支持时必须显示限制。归属：后续模型/Case 阶段。 |
+| D-011 | 实时数据、快照和情景输入边界尚未贯通 | Roadmap 要求 CI 历史快照、浏览器最新 API、失败回退，以及情景调整不重新请求 API；002 已有本地/远端来源和显式 refresh 的基础。 | 002 的来源能力是通用导入闭环，不包含 Case 的数据更新、陈旧标记、回退快照和“情景只改本地预测输入”的端到端验证。 | Phase 2 接入时复用 002 source snapshot/version contract；验证 API 失败仍可打开上一快照，情景编辑不改变源版本、不触发重新抓取。归属：数据发布与 Case 阶段。 |
+| D-012 | 完成标志与证据层级容易被误读 | 002 plan 的 MVP 是“导入 → SQL → 真实预测 → 查询 → 导出”，并明确不依赖案例页面；001 的情景证据来自 runtime/harness。 | roadmap 的产品定位和“哇时刻”描述更宽，容易让人以为 002 已经交付交互情景；当前没有一条 release gate 把 D-001–D-008 分开标记。 | 以后同时报告 `Phase 1 baseline MVP`、`shared runtime`、`Workbench scenario`、`Case integration` 四个状态；只有对应端到端证据齐全才提升状态，不用底层 harness 通过替代产品验收。归属：路线与验收治理。 |
+
+#### 建议的补齐顺序
+
+1. 先解决 D-001、D-012：确定情景交互是 Phase 1 的后续增量还是单独 Phase，并在规格/完成标志中分层标记。
+2. 再解决 D-002 至 D-006：把 `deriveScenario`、context reuse、interactive scheduler 和 baseline/current/delta 结果接入 Common View。
+3. 随后解决 D-007、D-008：补齐情景持久化、导出和真实浏览器验收；这一步完成后才可称为 Workbench scenario 闭环。
+4. 最后按 D-009 至 D-011 接入 Case View、模型比较和实时数据；这些是后续案例交付，不应在 Phase 1 baseline 验收中伪装成已完成。
+
+#### 当前 Phase 1 完成标志的解释
+
+下面的 Phase 1 完成标志只覆盖 **baseline MVP**：数据导入、SQL 训练/预测、一个已验证模型、预测表查询和基础导出。它不覆盖本节 D-001 至 D-008 的情景交互闭环；在路线图汇报中必须把两者分开报告。
+
 ### Phase 0：技术可行性门槛
 
 当前状态：**TabPFN 3.5 与 TabICL v2 的数值回归核心均已越过浏览器可行性门槛，TabPFN 3 待验证。** TabPFN 3.5 的 context builder 支持 3–1,024 个训练行和 1–32 个数值特征，prediction graph 支持动态 train/test/features；Chromium WASM 与真实 NVIDIA WebGPU 都完成了 `训练数据 → context → prediction` 闭环。单成员 estimator 的预处理 + 回归分布解码也已对齐官方 `TabPFNRegressor.predict()`，并验证 NaN 与 opt-in Inf 行为。权重交付方面，Common View 可让两个 ORT session 复用一次下载的 427.8 MB FP16 shared blob，不必为了去重强制合并为单图。共同剩余工作转为 TypeScript estimator adapter、浏览器持久缓存/运行时内存、真实时间数据，以及多成员/分类路径。
@@ -249,8 +281,9 @@ interface TabularModelAdapter {
 - 完成模型选择、运行状态、预测表注册和基础导出；
 - 实现数据/模型 worker，避免阻塞 UI；
 - 加入模型与数据缓存、能力检测和错误提示。
+- 准备固定版本的小型测试数据包，包含多格式等价样本、训练/预测切分、异常输入、示例 SQL 和预期结果，供导入、预测、查询、缓存与导出等后续功能测试复用。
 
-完成标志：用户能导入一份数据，用 SQL 定义训练/预测视图，选择一个已验证模型，在浏览器生成预测，并继续用 SQL 查询预测表。
+完成标志（baseline MVP）：用户能导入一份数据，用 SQL 定义训练/预测视图，选择一个已验证模型，在浏览器生成预测，并继续用 SQL 查询预测表；随附测试数据包可按说明重复验证该流程与基础导出。该标志不代表本节 D-001 至 D-008 的情景交互已经接入；详细规格见 [Phase 1 共享数据与实验闭环](specs/002-phase1-workbench/spec.md)。
 
 ### Phase 2：低碳用电 Case View
 

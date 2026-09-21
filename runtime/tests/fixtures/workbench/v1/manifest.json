@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "tabloom-workbench-v1",
+  "generatorVersion": "workbench-fixtures-1.0.0",
+  "seed": 20260920,
+  "generatedFrom": "tools/workbench-fixtures/generate.py",
+  "counts": {
+    "train": 256,
+    "predict": 32,
+    "features": 4
+  },
+  "formats": [
+    "csv",
+    "parquet",
+    "arrow-ipc",
+    "json",
+    "duckdb"
+  ],
+  "features": [
+    "temperature_c",
+    "wind_speed_ms",
+    "solar_wm2",
+    "hour_utc"
+  ],
+  "target": "demand_mwh",
+  "forecastOrigin": "2025-01-11T16:00:00Z",
+  "cases": [
+    {
+      "caseId": "empty",
+      "description": "Schema with zero records",
+      "file": "variants/empty/input.csv",
+      "expected": "EMPTY_INPUT"
+    },
+    {
+      "caseId": "missing-target",
+      "description": "Training target is NULL",
+      "file": "variants/missing-target/input.csv",
+      "expected": "INVALID_TARGET"
+    },
+    {
+      "caseId": "missing-feature",
+      "description": "One feature is NULL",
+      "file": "variants/missing-feature/input.csv",
+      "expected": "NULL_FEATURE_OR_MISSING"
+    },
+    {
+      "caseId": "duplicate-key",
+      "description": "Business key repeats with a distinct source row",
+      "file": "variants/duplicate-key/input.csv",
+      "expected": "ACCEPT_AND_PRESERVE_ORDINAL"
+    },
+    {
+      "caseId": "reordered",
+      "description": "Rows are reversed",
+      "file": "variants/reordered/input.csv",
+      "expected": "ACCEPT_INPUT_ORDER"
+    },
+    {
+      "caseId": "wrong-type",
+      "description": "Feature contains unparseable text",
+      "file": "variants/wrong-type/input.csv",
+      "expected": "FEATURE_TYPE_MISMATCH"
+    },
+    {
+      "caseId": "non-finite",
+      "description": "Non-finite feature and target are explicit CSV tokens",
+      "file": "variants/non-finite/input.csv",
+      "expected": "REJECT_TARGET_AND_DEFAULT_REJECT_FEATURE"
+    },
+    {
+      "caseId": "over-limit",
+      "description": "Input exceeds the locked 256-row model fixture limit",
+      "file": "variants/over-limit/input.csv",
+      "expected": "INPUT_LIMIT"
+    },
+    {
+      "caseId": "type-roundtrip",
+      "description": "Empty string, 64-bit integer and NULL",
+      "file": "variants/type-roundtrip/input.json",
+      "expected": "PRESERVE_TYPES"
+    }
+  ],
+  "reference": {
+    "status": "complete",
+    "file": "expected/tabpfn35-mean.json",
+    "sha256": "63a5940b823742dc3e85f144f427418b568c0fffce22af11b9d89823e56664ad",
+    "modelId": "tabpfn-3.5",
+    "checkpointSha256": "ece4d67eadfea42eb0e610df5189bea60cb7f31073d81e9c7a019b76eacf0be3",
+    "referencePrecision": "fp32"
+  },
+  "files": [
+    {
+      "path": "LICENSE",
+      "bytes": 99,
+      "sha256": "61a12a0fb6caeec0e983f7309fb566d7db5fc5145a89bb3b36f2a3ed8b27e1e4"
+    },
+    {
+      "path": "README.md",
+      "bytes": 741,
+      "sha256": "dbddc9846eaedb98d670b322daa6205bdb67aed1a094834f4c2eeb6a1e9adf00"
+    },
+    {
+      "path": "cases.json",
+      "bytes": 1771,
+      "sha256": "707ea1957fa623de358eae172262807ce713b4d27acfaadf8b36fe56dc2d8ef3"
+    },
+    {
+      "path": "expected/stats.json",
+      "bytes": 9230,
+      "sha256": "76271182562961aaa59f6708e0cf5725114576baba952829243a72cd00ac3b61"
+    },
+    {
+      "path": "expected/tabpfn35-mean.json",
+      "bytes": 2319,
+      "sha256": "63a5940b823742dc3e85f144f427418b568c0fffce22af11b9d89823e56664ad"
+    },
+    {
+      "path": "normal/predict.arrow",
+      "bytes": 3962,
+      "sha256": "0855fa6179dcb8deb788ac195b5f24b95fa228aaa6131ea181197a6171d32059"
+    },
+    {
+      "path": "normal/predict.csv",
+      "bytes": 2628,
+      "sha256": "a475f75b137f9d34293b28cd165cb950aab0662e93f8a552c8c3a5082b1f615c"
+    },
+    {
+      "path": "normal/predict.json",
+      "bytes": 8601,
+      "sha256": "83c369e2cafe842b1f84b711ca8dbdcfbeb9827492a1834abd8eb490c5a3519f"
+    },
+    {
+      "path": "normal/predict.parquet",
+      "bytes": 4241,
+      "sha256": "7bd727890a2c5b94d186fafc490e05742dcf0d0139d9544bcfe28bfc3bf75b66"
+    },
+    {
+      "path": "normal/sample.duckdb",
+      "bytes": 798720,
+      "sha256": "d362543cf62432e546452c692e3344777b6a770426a9a8a094568ddbd11095f4"
+    },
+    {
+      "path": "normal/train.arrow",
+      "bytes": 21834,
+      "sha256": "a65fa0cb42b366486f822d1e4f5308cb5ea350d45ca37c306df6685fccd90596"
+    },
+    {
+      "path": "normal/train.csv",
+      "bytes": 22378,
+      "sha256": "d94da4745d53d194d77e7271a067b41d542c675e44bb2b687f01b1a65e173d99"
+    },
+    {
+      "path": "normal/train.json",
+      "bytes": 75764,
+      "sha256": "2130b14fe3839374832820a8854543ee1e2d02dbd213bbf47bb045dada02f521"
+    },
+    {
+      "path": "normal/train.parquet",
+      "bytes": 17431,
+      "sha256": "aab3a8231b09f746f717aed252ccd14a75824a44dd11c6e7bbdb493674959d8e"
+    },
+    {
+      "path": "queries/aggregate.sql",
+      "bytes": 135,
+      "sha256": "d1e7603dfa5ac88a2a36e6ab8390eed944b278d2f9c5337f25311159eba25e82"
+    },
+    {
+      "path": "queries/export.sql",
+      "bytes": 44,
+      "sha256": "6f84f914620115dc3f6226805bd07c8639c38d77d028cdff14f1f1327f2c41f4"
+    },
+    {
+      "path": "queries/join.sql",
+      "bytes": 141,
+      "sha256": "68e43ae401985ab259f0864a462bc62a59a8fac1f75240c53d87bccf401bbfce"
+    },
+    {
+      "path": "queries/predict.sql",
+      "bytes": 124,
+      "sha256": "3eb3a3466fa41e014a433a3cff4a6c35b28e6bb9538ef5c75330a55f5ab128f4"
+    },
+    {
+      "path": "queries/train.sql",
+      "bytes": 134,
+      "sha256": "3ec8c0e430d9c9a599d644b7e7f95c7a50767057da348931575dc53d33b74159"
+    },
+    {
+      "path": "schema.json",
+      "bytes": 1345,
+      "sha256": "28603bc83ffb16ed650f45a8a71dc418989b19cbcfabc0c69cbcd31ff962860d"
+    },
+    {
+      "path": "truth/predict-targets.csv",
+      "bytes": 2884,
+      "sha256": "7e02a1f36b62199b31ef4ed9f2f6e423ec2cf7448bc040dd9fc514d8a38f6d4e"
+    },
+    {
+      "path": "variants/duplicate-key/input.csv",
+      "bytes": 22388,
+      "sha256": "c8e19c1c479a678a2d2ae9e2938a7eef284f2f5fd20ee34e3d253d0aa0b1e1d8"
+    },
+    {
+      "path": "variants/empty/input.csv",
+      "bytes": 121,
+      "sha256": "88a0291ef46e7dfef7c1ce6ba4311ecda0a1d2584b320652561ee0bcdb298fa1"
+    },
+    {
+      "path": "variants/missing-feature/input.csv",
+      "bytes": 22375,
+      "sha256": "47b11a77e30a5d6d0409922e192c0c059dbcaa6778f3cc1e05a39c0cccca3e14"
+    },
+    {
+      "path": "variants/missing-target/input.csv",
+      "bytes": 22372,
+      "sha256": "7a02e346f980fed3372b8088bb0aa4adbe7a357d640ef164c9796ad13a160c4d"
+    },
+    {
+      "path": "variants/non-finite/input.csv",
+      "bytes": 22380,
+      "sha256": "991c817255a399510b703530347c1cd5dcc82c0e6871d78cb59ba20eb0f6aed4"
+    },
+    {
+      "path": "variants/over-limit/input.csv",
+      "bytes": 23978,
+      "sha256": "b6efcd7a533a2556119a11b12a64f389e887587df103dceb86a0814cee53d601"
+    },
+    {
+      "path": "variants/reordered/input.csv",
+      "bytes": 22378,
+      "sha256": "88b8a247aac22395d3a23c7ce45a9ffff48117756645cd1456ca36c08ab4b165"
+    },
+    {
+      "path": "variants/type-roundtrip/input.json",
+      "bytes": 139,
+      "sha256": "1e3c2746cc54b1c4e2cbc40a06e2cb38da24ba85bae3baddf4219b7bf08500f7"
+    },
+    {
+      "path": "variants/wrong-type/input.csv",
+      "bytes": 22387,
+      "sha256": "46e60d0c20a60109e080e975b4d2cb534b4b82f5cf8c8aaebffb9d4609671ddc"
+    }
+  ]
+}

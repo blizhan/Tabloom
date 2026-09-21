@@ -24,6 +24,11 @@ export interface PreprocessingConfig {
    * browser fit identical to a published estimator member. */
   readonly featureShiftDecoder?: "shuffle" | "rotate" | null;
   readonly featureShiftCount?: number;
+  /** Optional fitted official soft-clip bounds.  Maintainer/reference flows
+   * may provide the serialized GPU preprocessing cache so browser inference
+   * uses exactly the same float32 boundaries as the estimator. */
+  readonly softClipLower?: readonly number[];
+  readonly softClipUpper?: readonly number[];
   readonly version?: string;
 }
 export interface ContextIdentity {
@@ -114,6 +119,8 @@ export interface PredictionMetadata {
 }
 export interface PredictionResult {
   readonly mean: Float32Array;
+  readonly q25?: Float32Array;
+  readonly q75?: Float32Array;
   readonly requestId: string;
   readonly inputSnapshotId: string;
   readonly scenarioId: string;

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "caseId": "empty",
+      "description": "Schema with zero records",
+      "file": "variants/empty/input.csv",
+      "expected": "EMPTY_INPUT"
+    },
+    {
+      "caseId": "missing-target",
+      "description": "Training target is NULL",
+      "file": "variants/missing-target/input.csv",
+      "expected": "INVALID_TARGET"
+    },
+    {
+      "caseId": "missing-feature",
+      "description": "One feature is NULL",
+      "file": "variants/missing-feature/input.csv",
+      "expected": "NULL_FEATURE_OR_MISSING"
+    },
+    {
+      "caseId": "duplicate-key",
+      "description": "Business key repeats with a distinct source row",
+      "file": "variants/duplicate-key/input.csv",
+      "expected": "ACCEPT_AND_PRESERVE_ORDINAL"
+    },
+    {
+      "caseId": "reordered",
+      "description": "Rows are reversed",
+      "file": "variants/reordered/input.csv",
+      "expected": "ACCEPT_INPUT_ORDER"
+    },
+    {
+      "caseId": "wrong-type",
+      "description": "Feature contains unparseable text",
+      "file": "variants/wrong-type/input.csv",
+      "expected": "FEATURE_TYPE_MISMATCH"
+    },
+    {
+      "caseId": "non-finite",
+      "description": "Non-finite feature and target are explicit CSV tokens",
+      "file": "variants/non-finite/input.csv",
+      "expected": "REJECT_TARGET_AND_DEFAULT_REJECT_FEATURE"
+    },
+    {
+      "caseId": "over-limit",
+      "description": "Input exceeds the locked 256-row model fixture limit",
+      "file": "variants/over-limit/input.csv",
+      "expected": "INPUT_LIMIT"
+    },
+    {
+      "caseId": "type-roundtrip",
+      "description": "Empty string, 64-bit integer and NULL",
+      "file": "variants/type-roundtrip/input.json",
+      "expected": "PRESERVE_TYPES"
+    }
+  ]
+}

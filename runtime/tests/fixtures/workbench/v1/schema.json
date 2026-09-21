@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "tabloom-workbench-v1",
+  "generatorVersion": "workbench-fixtures-1.0.0",
+  "seed": 20260920,
+  "forecastOrigin": "2025-01-11T16:00:00Z",
+  "trainRows": 256,
+  "predictRows": 32,
+  "features": [
+    "temperature_c",
+    "wind_speed_ms",
+    "solar_wm2",
+    "hour_utc"
+  ],
+  "target": "demand_mwh",
+  "targetUnit": "MWh",
+  "targetMeaning": "Synthetic demand; not a real business forecast.",
+  "columns": [
+    {
+      "name": "source_row_id",
+      "type": "string",
+      "nullable": false
+    },
+    {
+      "name": "business_key",
+      "type": "string",
+      "nullable": false
+    },
+    {
+      "name": "timestamp_utc",
+      "type": "timestamp[us, UTC]",
+      "nullable": false
+    },
+    {
+      "name": "features_available_at",
+      "type": "timestamp[us, UTC]",
+      "nullable": false
+    },
+    {
+      "name": "temperature_c",
+      "type": "float64",
+      "nullable": false
+    },
+    {
+      "name": "wind_speed_ms",
+      "type": "float64",
+      "nullable": false
+    },
+    {
+      "name": "solar_wm2",
+      "type": "float64",
+      "nullable": false
+    },
+    {
+      "name": "hour_utc",
+      "type": "int32",
+      "nullable": false
+    },
+    {
+      "name": "demand_mwh",
+      "type": "float64",
+      "nullable": false,
+      "tables": [
+        "train"
+      ]
+    }
+  ]
+}

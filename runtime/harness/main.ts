@@ -12,7 +12,7 @@ if (status) renderCapabilities(coordinator, status);
 // possible to execute the same data/worker/persistence checks manually.
 Object.assign(globalThis, {
   __TABLOOM_HARNESS__: {
-    run: (suite: string, provider: "wasm" | "webgpu", cycles: number) => runHarnessSuite(suite, provider, cycles),
+    run: (suite: string, provider: "wasm" | "webgpu", cycles: number, precision?: "fp32" | "fp16-storage", payload?: unknown) => runHarnessSuite(suite, provider, cycles, precision, payload),
     diagnostics: () => ({ resources: lifecycleObservation(), note: "Browser/device signals are reported as unavailable when the platform does not expose them." }),
   },
 });

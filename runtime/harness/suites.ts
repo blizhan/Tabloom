@@ -9,6 +9,12 @@ import { runActualLifecycle, runDeterministicLifecycleChecks } from "../tests/br
 import { inspectBuiltAssetContract, type AssetResponseEvidence } from "../tests/browser/built-assets";
 import { runCaseBrowser } from "../tests/browser/case";
 import { runEstimatorParity } from "../tests/browser/parity";
+import { runWorkbenchFlow } from "../tests/browser/workbench-flow";
+import { runWorkbenchBootstrap } from "../tests/browser/workbench-bootstrap";
+import { runWorkbenchSources } from "../tests/browser/workbench-sources";
+import { runWorkbenchPersistence } from "../tests/browser/workbench-persistence";
+import { runWorkbenchResponsiveness } from "../tests/browser/workbench-responsiveness";
+import { runWorkbenchExport } from "../tests/browser/workbench-export";
 import { CASE_VARIANTS } from "../src/model/tabiclv2/case-fixture";
 import type { ContextSnapshot } from "../src/model/types";
 import { TABPFN35_CACHE_NAMES } from "../src/model/tabpfn35/ort-runtime";
@@ -157,7 +163,7 @@ async function runCase(provider: "wasm" | "webgpu"): Promise<HarnessSuiteResult>
   return { suite: "case", provider, status: "passed", scope: "real TabICL v2 Case ORT graph; target-unit comparison against published FP32/FP16-storage means", evidence };
 }
 
-export async function runHarnessSuite(suite: string, provider: "wasm" | "webgpu", cycles: number): Promise<HarnessSuiteResult> {
+export async function runHarnessSuite(suite: string, provider: "wasm" | "webgpu", cycles: number, precision: "fp32" | "fp16-storage" = "fp16-storage", payload?: unknown): Promise<HarnessSuiteResult> {
   if (suite === "integration") return runIntegration(provider);
   if (suite === "persistence") return runPersistence(provider);
   if (suite === "lifecycle") return runLifecycle(provider, cycles);
@@ -179,5 +185,39 @@ export async function runHarnessSuite(suite: string, provider: "wasm" | "webgpu"
     };
   }
   if (suite === "case") return runCase(provider);
+  if (suite === "workbench-flow") {
+    const result = await runWorkbenchFlow(location.origin, provider, precision);
+    return { suite, provider, status: result.status === "failed" ? "failed" : result.status === "not-run" ? "unavailable" : "passed", scope: "real TabPFN 3.5 ORT worker against workbench v1 train/predict fixture", ...(result.status !== "passed" ? { reason: result.evidence.map((item) => String(item.reason ?? "workbench flow unavailable")).join("; ") } : {}), evidence: result.evidence };
+  }
+  if (suite === "workbench-bootstrap") {
+    const assetRoot = new URL("/runtime-assets/duckdb/", location.href).href;
+    const { executor } = await createDuckDbWasmExecutor({ workerUrl: `${assetRoot}duckdb-browser-mvp.worker.js`, wasmUrl: `${assetRoot}duckdb-mvp.wasm` });
+    try { const result = await runWorkbenchBootstrap(executor); return { suite, provider, status: "passed", scope: "real DuckDB-WASM workbench readonly bootstrap", evidence: [result] }; }
+    finally { await executor.close?.(); }
+  }
+  if (suite === "workbench-export") {
+    const result = await runWorkbenchExport(location.origin);
+    return { suite, provider, status: result.status === "passed" ? "passed" : result.status === "not-run" ? "unavailable" : "failed", scope: "real CSV/Arrow/Parquet export and SQL query round-trip", ...(result.status !== "passed" ? { reason: result.evidence.map((item) => String(item.error ?? "export unavailable")).join("; ") } : {}), evidence: result.evidence.concat(result.formats as unknown as Record<string, unknown>[]) };
+  }
+  if (suite === "workbench-sources") {
+    const sourceBaseUrl = typeof payload === "object" && payload && "sourceBaseUrl" in payload ? String((payload as { sourceBaseUrl: unknown }).sourceBaseUrl) : "";
+    if (!sourceBaseUrl) return { suite, provider, status: "unavailable", reason: "Controlled source origin was not supplied" };
+    const result = await runWorkbenchSources(location.origin, sourceBaseUrl);
+    return { suite, provider, status: result.status === "passed" ? "passed" : result.status === "not-run" ? "unavailable" : "failed", scope: "local CSV/Parquet/Arrow plus controlled remote source origin", ...(result.status !== "passed" ? { reason: result.evidence.map((item) => String(item.error ?? "source suite unavailable")).join("; ") } : {}), evidence: result.evidence };
+  }
+  if (suite === "workbench-persistence") {
+    const result = await runWorkbenchPersistence();
+    return { suite, provider, status: result.status === "passed" ? "passed" : result.status === "not-run" ? "unavailable" : "failed", scope: "model-free IndexedDB data snapshot and experiment restart", ...(result.status !== "passed" ? { reason: result.evidence.map((item) => String(item.reason ?? "persistence suite failed")).join("; ") } : {}), evidence: result.evidence };
+  }
+  if (suite === "workbench-model-cache") {
+    const flow = await runWorkbenchFlow(location.origin, provider, precision);
+    const worker = await persistenceWorkerRestartProbe(() => { const workerUrl = new URL("../src/workers/model.worker-entry.ts", import.meta.url); workerUrl.searchParams.set("precision", precision === "fp32" ? "fp32" : "fp16-storage"); return new Worker(workerUrl, { type: "module" }); }, provider);
+    const status = flow.status === "passed" && worker.status === "passed" && worker.warmFetches === 0 && worker.meansFinite ? "passed" : flow.status === "not-run" || worker.status === "unavailable" ? "unavailable" : "failed";
+    return { suite, provider, status, scope: "real model worker restart with application ContextStore cache and independent workbench mean", ...(status !== "passed" ? { reason: [...worker.unavailable, ...worker.failures, ...(flow.status !== "passed" ? ["independent workbench flow did not pass"] : [])].join("; ") } : {}), evidence: [{ flow, worker, applicationCacheHit: worker.warmFetches === 0, independentMeanChecked: flow.status === "passed" }] };
+  }
+  if (suite === "workbench-responsiveness") {
+    const result = await runWorkbenchResponsiveness(location.origin, provider, precision);
+    return { suite, provider, status: result.status === "passed" ? "passed" : result.status === "not-run" ? "unavailable" : "failed", scope: "30 event-loop feedback interactions plus one real model prediction", ...(result.status !== "passed" ? { reason: result.evidence.map((item) => String(item.reason ?? "responsiveness suite failed")).join("; ") } : {}), evidence: result.evidence.concat(result.phases as unknown as Record<string, unknown>[]) };
+  }
   return { suite, provider, status: "failed", reason: `Unknown harness suite: ${suite}` };
 }

@@ -1,0 +1,3 @@
+export interface ExperimentConfigView { readonly target: string; readonly features: readonly string[]; readonly model: string; readonly provider: "wasm" | "webgpu"; readonly precision: "fp32" | "fp16-storage"; }
+export function renderExperimentConfig(value: ExperimentConfigView): string { return `<section aria-label="实验配置"><p>模型：${escapeHtml(value.model)}</p><p>目标：${escapeHtml(value.target)}</p><p>特征：${value.features.map(escapeHtml).join(", ")}</p><p>执行：${value.provider} / ${value.precision}</p></section>`; }
+function escapeHtml(value: string): string { return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;"); }

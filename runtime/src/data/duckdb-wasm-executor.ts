@@ -71,6 +71,18 @@ export async function createDuckDbWasmExecutor(options: DuckDbWasmOptions): Prom
       if (!name || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) throw new Error(`Unsafe Arrow table name: ${name}`);
       await connection.insertArrowTable(table as never, { name });
     },
+    async registerFileBuffer(name: string, bytes: Uint8Array): Promise<void> {
+      if (!name || !/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(name)) throw new Error(`Unsafe DuckDB file name: ${name}`);
+      await db.registerFileBuffer(name, new Uint8Array(bytes));
+    },
+    async copyFileToBuffer(name: string): Promise<Uint8Array> {
+      if (!name || !/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(name)) throw new Error(`Unsafe DuckDB file name: ${name}`);
+      return new Uint8Array(await db.copyFileToBuffer(name));
+    },
+    async dropFile(name: string): Promise<void> {
+      if (!name || !/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(name)) throw new Error(`Unsafe DuckDB file name: ${name}`);
+      await db.dropFile(name);
+    },
     async close(): Promise<void> { await connection.close(); await db.terminate(); },
   };
   return { executor, close: () => executor.close?.() ?? Promise.resolve() };

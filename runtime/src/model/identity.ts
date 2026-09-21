@@ -92,7 +92,10 @@ export function parsePreprocessingConfig(input: Partial<PreprocessingConfig> & {
   if (profile !== "tabpfn35-none" && profile !== "tabpfn35-fingerprint" && profile !== "tabpfn35-permutation" && profile !== "tabicl-case") throw new TypeError(`Unsupported preprocessing profile: ${profile}`);
   const permutation = input.featurePermutation ? [...input.featurePermutation] : undefined;
   if (permutation && permutation.some((value) => !Number.isSafeInteger(value) || value < 0)) throw new TypeError("Invalid feature permutation");
-  return { profile, seed, passthroughInf: input.passthroughInf ?? false, featureFingerprint: input.featureFingerprint ?? (profile === "tabpfn35-none" || profile === "tabpfn35-fingerprint"), featurePermutation: permutation, featureShiftDecoder: input.featureShiftDecoder ?? null, featureShiftCount: input.featureShiftCount ?? 0, version: input.version };
+  const softClipLower = input.softClipLower ? [...input.softClipLower] : undefined;
+  const softClipUpper = input.softClipUpper ? [...input.softClipUpper] : undefined;
+  if ((softClipLower && !softClipUpper) || (!softClipLower && softClipUpper) || (softClipLower && softClipUpper && (softClipLower.length !== softClipUpper.length || softClipLower.some((value) => !Number.isFinite(value)) || softClipUpper.some((value) => !Number.isFinite(value))))) throw new TypeError("Invalid soft-clip bounds");
+  return { profile, seed, passthroughInf: input.passthroughInf ?? false, featureFingerprint: input.featureFingerprint ?? (profile === "tabpfn35-none" || profile === "tabpfn35-fingerprint"), featurePermutation: permutation, featureShiftDecoder: input.featureShiftDecoder ?? null, featureShiftCount: input.featureShiftCount ?? 0, softClipLower, softClipUpper, version: input.version };
 }
 export async function buildContextIdentity(args: {
   modelId: ModelId; modelVersion: string; artifactManifestDigest: string; preprocessingVersion: string;
